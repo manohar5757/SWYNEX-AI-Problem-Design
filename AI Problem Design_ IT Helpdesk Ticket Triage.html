@@ -1,0 +1,66 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}</style><style>:root{color-scheme:light dark;--md-bg:#fff;--md-text:rgba(0,0,0,.8);--md-muted:rgba(0,0,0,.6);--md-fill:rgba(0,0,0,.04);--md-fill-strong:rgba(0,0,0,.06);--md-rule:rgba(0,0,0,.1);--md-rule-strong:rgba(0,0,0,.16);--md-link:hsl(210 100% 45%)}@media (prefers-color-scheme:dark){:root:where(:not([data-theme="light"])){--md-bg:#0d0d0d;--md-text:rgba(255,255,255,.85);--md-muted:rgba(255,255,255,.6);--md-fill:rgba(255,255,255,.06);--md-fill-strong:rgba(255,255,255,.09);--md-rule:rgba(255,255,255,.14);--md-rule-strong:rgba(255,255,255,.22);--md-link:hsl(210 100% 72%)}}:root[data-theme="dark"]{color-scheme:dark;--md-bg:#0d0d0d;--md-text:rgba(255,255,255,.85);--md-muted:rgba(255,255,255,.6);--md-fill:rgba(255,255,255,.06);--md-fill-strong:rgba(255,255,255,.09);--md-rule:rgba(255,255,255,.14);--md-rule-strong:rgba(255,255,255,.22);--md-link:hsl(210 100% 72%)}:root[data-theme="light"]{color-scheme:light}@media print{:root,:root[data-theme="dark"]{color-scheme:light;--md-bg:#fff;--md-text:rgba(0,0,0,.8);--md-muted:rgba(0,0,0,.6);--md-fill:rgba(0,0,0,.04);--md-fill-strong:rgba(0,0,0,.06);--md-rule:rgba(0,0,0,.1);--md-rule-strong:rgba(0,0,0,.16);--md-link:hsl(210 100% 45%)}}body{background:var(--md-bg);color:var(--md-text);max-width:720px;margin:0 auto;padding:32px;display:flex;flex-direction:column;gap:10px;font:14px/1.55 -apple-system,BlinkMacSystemFont,'SF Pro','Segoe UI',sans-serif;overflow-wrap:break-word}body>:first-child{margin-top:0}h1,h2,h3,h4,h5,h6{margin:6px 0 0;line-height:1.25;font-weight:600;text-wrap:balance}h1{font-size:1.35em}h2{font-size:1.15em;color:var(--md-muted)}h3,h4,h5,h6{font-size:1em}p,ul,ol,blockquote,table,pre,hr{margin:0}strong{font-weight:600}a{color:var(--md-link);text-decoration:none}a:hover{text-decoration:underline}ul,ol{display:flex;flex-direction:column;gap:6px;padding-left:22px}ul{list-style:disc}ol{list-style:decimal}:is(li,td,th)>*+:is(p,ul,ol,blockquote){margin-top:6px}blockquote{display:flex;flex-direction:column;gap:10px;border-left:2px solid var(--md-rule);padding-left:10px;color:var(--md-muted)}:not(pre)>code{background:var(--md-fill);padding:1px 3px;border-radius:4px;font:.92em 'SF Mono',ui-monospace,Menlo,Consolas,monospace}a>code{background:none;color:inherit}pre{background:var(--md-fill);padding:10px 12px;border-radius:6px;overflow-x:auto;font:12px/1.5 'SF Mono',ui-monospace,Menlo,Consolas,monospace;margin-block:4px}pre code{background:none;padding:0;font:inherit}table{width:100%;border-collapse:separate;border-spacing:2px;font:inherit}th,td{padding:6px 8px;border-radius:3px;text-align:left;vertical-align:top}th{background:var(--md-fill-strong);font-weight:600}td{background:var(--md-fill)}:is(th,td) :not(pre)>code{background:transparent}hr{border:0;border-top:1px solid var(--md-rule-strong);margin-block:10px}img{max-width:100%;height:auto;border-radius:4px}</style>
+</head><body>
+<h1>AI Problem Design: IT Helpdesk Ticket Triage Classification</h1>
+<h2>1. Problem Statement</h2>
+<p>Build a text classification system that automatically assigns an <strong>urgency label</strong> (Low / Medium / High / Critical) to incoming IT helpdesk support tickets based on their subject and description text. This is a narrow, well-bounded supervised classification problem over short-to-medium length text.</p>
+<p><strong>Why this problem:</strong> IT helpdesks receive a high volume of tickets that currently require a human triage step before routing to the right technician. Manual triage is slow, inconsistent between reviewers, and delays response to genuinely critical issues (e.g., &quot;production server down&quot; vs. &quot;how do I reset my printer password&quot;). Automating the first-pass urgency classification reduces time-to-assignment and improves consistency.</p>
+<h2>2. Target User</h2>
+<ul>
+<li><strong>Primary user:</strong> IT service desk coordinators/dispatchers who currently manually read and route tickets.</li>
+<li><strong>Secondary user:</strong> End users submitting tickets (indirectly benefit from faster response on urgent issues).</li>
+<li><strong>Use context:</strong> The model output is a suggested label shown alongside the ticket in the ticketing system (e.g., Jira Service Management, Zendesk); a human dispatcher can override it. This is a decision-support tool, not a fully autonomous router — at least initially.</li>
+</ul>
+<h2>3. Data Source</h2>
+<ul>
+<li><strong>Source:</strong> Historical ticket export from the organization's existing helpdesk system (e.g., Zendesk/Jira CSV export), containing: ticket subject, ticket description, category tag, and the urgency label historically assigned by a human agent.</li>
+<li><strong>Size:</strong> A small dataset of ~500–2,000 labeled historical tickets is sufficient for this narrow use case (fine-tuning a lightweight classifier or using few-shot prompting with a general-purpose LLM).</li>
+<li><strong>Labels:</strong> Reuse the organization's existing urgency taxonomy (Low/Medium/High/Critical) rather than inventing a new one, to keep labels meaningful to dispatchers and avoid a costly relabeling effort.</li>
+<li><strong>Data quality note:</strong> Historical labels reflect <em>human</em> triage decisions, which may themselves be inconsistent — this is a known limitation addressed in the evaluation section below.</li>
+</ul>
+<h2>4. Constraints</h2>
+<ul>
+<li><strong>Privacy:</strong> Ticket text may contain employee names, internal system names, or sensitive details. Data must be handled under the organization's existing data-handling policy; PII should be scrubbed or the dataset kept internal-only (not sent to external APIs unless the provider is already an approved vendor).</li>
+<li><strong>Latency:</strong> Classification should return a label within a few seconds of ticket submission so it can be shown to the dispatcher in near-real time — rules out heavyweight batch-only pipelines.</li>
+<li><strong>Class imbalance:</strong> &quot;Critical&quot; tickets are rare (~2–5% of volume) relative to &quot;Low&quot;/&quot;Medium&quot; — the model and evaluation must account for this rather than optimizing for raw accuracy.</li>
+<li><strong>Interpretability:</strong> Dispatchers should be able to see <em>why</em> a ticket got a label (e.g., which keywords/phrases drove it), to build trust and support overrides.</li>
+<li><strong>Scope limit:</strong> The system labels urgency only — it does not attempt to route to a specific team/technician or resolve the ticket. That is a separate, later-stage problem.</li>
+</ul>
+<h2>5. Evaluation Approach</h2>
+<ul>
+<li><strong>Data split:</strong> Time-based split (train on older tickets, test on most recent ~20%) rather than random split, since ticket patterns can drift over time and this better simulates real deployment.</li>
+<li><strong>Primary metrics:</strong>
+<ul>
+<li><strong>Macro F1-score</strong> across the four urgency classes (not accuracy alone, given class imbalance) — this weighs performance on the rare &quot;Critical&quot; class equally with common classes.</li>
+<li><strong>Recall on &quot;Critical&quot; and &quot;High&quot; classes</strong> specifically, since a missed critical ticket (false negative) is far more costly than a false positive on a low-priority ticket.</li>
+</ul>
+</li>
+<li><strong>Secondary/operational metrics:</strong>
+<ul>
+<li><strong>Disagreement rate with human dispatcher overrides</strong> once piloted — if dispatchers frequently overrule a specific label, that's a signal of model weakness even if held-out metrics look fine.</li>
+<li><strong>Time-to-first-response</strong> for Critical/High tickets, before vs. after deployment (the real business outcome this is meant to improve).</li>
+</ul>
+</li>
+<li><strong>Baseline for comparison:</strong> A simple keyword-rule baseline (e.g., flag &quot;down,&quot; &quot;outage,&quot; &quot;cannot access production&quot; as High/Critical) — the ML model must clearly beat this simple baseline to justify its complexity.</li>
+<li><strong>Human-in-the-loop validation:</strong> Before full rollout, run the model in &quot;shadow mode&quot; for 2–4 weeks, logging predictions alongside actual dispatcher decisions without acting on them, to measure real-world agreement before it influences routing.</li>
+</ul>
+<h2>6. AI Model</h2>
+<ul>
+<li><strong>Approach:</strong> Given the small dataset (~500–2,000 labeled tickets) and the need for interpretability, a fine-tuned lightweight transformer classifier is preferred over training a model from scratch or relying solely on a large general-purpose LLM.
+<ul>
+<li><strong>Primary choice:</strong> Fine-tune a compact pretrained encoder model, such as <strong>DistilBERT</strong> or <strong>all-MiniLM-L6-v2</strong>, as a text classification head over the four urgency classes. These models are small enough to fine-tune quickly on a modest dataset, run cheaply at inference time (supporting the latency constraint), and can be deployed on-premises or in a private cloud environment to satisfy the privacy constraint (no ticket text needs to leave the organization's infrastructure).</li>
+<li><strong>Alternative/fallback:</strong> If labeled data proves too sparse or noisy for reliable fine-tuning, use <strong>few-shot prompting with a general-purpose LLM</strong> (e.g., Claude or GPT-4-class model) via an approved enterprise API, providing a handful of labeled example tickets per class in the prompt. This trades some interpretability and per-call cost for faster setup and no training pipeline.</li>
+</ul>
+</li>
+<li><strong>Interpretability support:</strong> Pair the classifier with a simple explainability layer — e.g., highlighting the keywords/phrases (via attention weights or a lightweight technique like LIME/SHAP) that most influenced the predicted label — so dispatchers can see the &quot;why&quot; behind each suggestion, as required by the interpretability constraint above.</li>
+<li><strong>Model selection criterion:</strong> The final model choice (fine-tuned encoder vs. LLM few-shot) should be decided empirically during the pilot, based on which approach better satisfies the Success Criteria (Section 7) on the held-out test set and in shadow mode — not chosen purely on theoretical grounds.</li>
+</ul>
+<h2>7. Success Criteria</h2>
+<p>The system is considered successful if, after the shadow-mode pilot:</p>
+<ol>
+<li>Macro F1 ≥ 0.75 on the held-out time-based test set.</li>
+<li>Recall on &quot;Critical&quot; tickets ≥ 0.90 (minimizing missed emergencies is the top priority, even at some cost to precision).</li>
+<li>The model outperforms the keyword-rule baseline by at least 10 points of macro F1.</li>
+<li>Dispatcher override rate during shadow mode is below 20%, indicating the suggested labels are broadly trusted and useful rather than routinely ignored.</li>
+</ol>
+
+</body></html>
